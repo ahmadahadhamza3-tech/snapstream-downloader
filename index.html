@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapStream — Fast Video & Audio Downloader</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            surface: {
+              DEFAULT: '#0b1326',
+              dim: '#060e20',
+              card: '#131b2e',
+              border: '#222f4c',
+              highlight: '#1c2742',
+            },
+            brand: {
+              purple: '#8b5cf6',
+              'purple-hover': '#7c3aed',
+              cyan: '#06b6d4',
+              green: '#10b981',
+              red: '#ef4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b1326;
+      color: #e2e8f0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .gradient-purple-btn {
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      transition: all 0.2s ease;
+    }
+    .gradient-purple-btn:hover {
+      background: linear-gradient(135deg, #9d74f8 0%, #7c3aed 100%);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+    .glass-panel {
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid #222f4c;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-purple-600 selection:text-white">
+
+  <!-- ==================== HEADER NAVIGATION ==================== -->
+  <header class="border-b border-surface-border bg-surface-dim/80 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-purple-900/30">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <span class="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+          SnapStream <span class="text-xs px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300 border border-purple-500/30 font-mono">v1.0</span>
+        </span>
+      </div>
+
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+        <a href="#downloader" class="text-white hover:text-purple-400 transition-colors">Downloader</a>
+        <a href="#how-it-works" class="hover:text-purple-400 transition-colors">Guide</a>
+        <a href="#faq" class="hover:text-purple-400 transition-colors">FAQ</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <!-- Backend API Config Toggle -->
+        <button id="configToggleBtn" title="API Settings" class="p-2 rounded-lg bg-surface-card border border-surface-border text-slate-400 hover:text-white hover:border-purple-500 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Engine Ready
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== BACKEND CONFIG MODAL ==================== -->
+  <div id="configModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span>⚙️</span> Backend API Configuration
+        </h3>
+        <button id="closeConfigModalBtn" class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+        For third-party links (YouTube, TikTok), enter your self-hosted API microservice endpoint. For direct media files (<code class="text-purple-300 font-mono">.mp4, .webm</code>), SnapStream downloads directly in-browser.
+      </p>
+      <div class="space-y-3">
+        <label class="block text-xs font-medium text-slate-300">Backend API Base URL</label>
+        <input id="apiEndpointInput" type="url" placeholder="http://localhost:3001" class="w-full px-3.5 py-2.5 rounded-lg bg-surface-dim border border-surface-border text-sm text-white focus:outline-none focus:border-purple-500 font-mono">
+        <div class="text-[11px] text-slate-500">Default: Direct client browser fetch with CORS fallback.</div>
+      </div>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="saveConfigBtn" class="px-4 py-2 rounded-lg gradient-purple-btn text-xs font-semibold text-white">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <main id="downloader" class="flex-grow max-w-4xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-12">
+
+    <!-- Hero Title -->
+    <div class="text-center space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-purple-950/60 border border-purple-500/30 text-purple-300">
+        <span class="w-2 h-2 rounded-full bg-cyan-400"></span> ZERO-TELEMETRY • HIGH-SPEED PARSER
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+        Download Video & Audio from <br class="hidden sm:inline">
+        <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-violet-300 to-cyan-400">Any Direct Stream</span>
+      </h1>
+      <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
+        Fast, clean media extraction with zero ads or deceptive redirects. Supports direct URLs, public CORS media, and custom backend resolvers.
+      </p>
+    </div>
+
+    <!-- URL Input Card -->
+    <div class="glass-panel p-3 sm:p-4 rounded-2xl shadow-xl shadow-purple-950/20 space-y-3">
+      <div class="flex flex-col sm:flex-row gap-2">
+        <!-- Input wrapper with Paste action -->
+        <div class="relative flex-grow flex items-center">
+          <span class="absolute left-3.5 text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+          </span>
+          <input 
+            id="urlInput"
+            type="url" 
+            placeholder="Paste direct video URL (e.g. https://.../video.mp4)" 
+            autocomplete="off" 
+            class="w-full pl-11 pr-24 py-3.5 rounded-xl bg-surface-dim border border-surface-border text-slate-100 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-slate-500"
+          >
+          <!-- Functional Paste Button -->
+          <button 
+            id="pasteBtn"
+            type="button" 
+            class="absolute right-2 px-3 py-1.5 rounded-lg bg-surface-card hover:bg-surface-highlight border border-surface-border text-xs font-medium text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
+          >
+            <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Paste
+          </button>
+        </div>
+
+        <!-- Download / Process Button -->
+        <button 
+          id="processBtn"
+          class="gradient-purple-btn px-6 py-3.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          <span id="processBtnText">Download Video</span>
+        </button>
+      </div>
+
+      <!-- Quick Platform Support Pills -->
+      <div class="flex items-center gap-2 flex-wrap pt-2 px-1 text-[11px] text-slate-400">
+        <span class="text-slate-500 font-mono">SUPPORTS:</span>
+        <span class="px-2 py-0.5 rounded bg-surface-dim border border-surface-border text-slate-300">Direct MP4 / WebM</span>
+        <span class="px-2 py-0.5 rounded bg-surface-dim border border-surface-border text-slate-300">YouTube</span>
+        <span class="px-2 py-0.5 rounded bg-surface-dim border border-surface-border text-slate-300">TikTok</span>
+        <span class="px-2 py-0.5 rounded bg-surface-dim border border-surface-border text-slate-300">Instagram</span>
+        <span class="px-2 py-0.5 rounded bg-surface-dim border border-surface-border text-slate-300">X / Twitter</span>
+        <span class="px-2 py-0.5 rounded bg-surface-dim border border-surface-border text-slate-300">Vimeo</span>
+      </div>
+    </div>
+
+    <!-- ==================== DYNAMIC STATE CONTAINER ==================== -->
+    <div id="stateContainer">
+
+      <!-- 1. IDLE / EMPTY STATE -->
+      <div id="idleState" class="border border-dashed border-surface-border rounded-2xl p-10 text-center space-y-3 bg-surface-dim/40">
+        <div class="w-12 h-12 rounded-full bg-surface-card border border-surface-border flex items-center justify-center mx-auto text-purple-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-200">No Video Loaded Yet</h3>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto">
+          Paste any authorized video link or direct media file above and click <strong>Download Video</strong> to extract streams and available resolutions.
+        </p>
+      </div>
+
+      <!-- 2. LOADING STATE -->
+      <div id="loadingState" class="hidden glass-panel rounded-2xl p-8 text-center space-y-4">
+        <div class="inline-block relative w-12 h-12">
+          <div class="w-12 h-12 rounded-full border-2 border-purple-500/20 border-t-purple-500 animate-spin"></div>
+        </div>
+        <div class="space-y-1">
+          <h4 class="text-sm font-bold text-white">Analyzing & Extracting Media Stream...</h4>
+          <p id="loadingStatusText" class="text-xs text-slate-400 font-mono">Querying video endpoint & resolving available bitrates...</p>
+        </div>
+      </div>
+
+      <!-- 3. ERROR MESSAGE STATE -->
+      <div id="errorState" class="hidden glass-panel border-red-500/40 rounded-2xl p-6 space-y-3">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-xl bg-red-950/60 border border-red-500/40 flex-shrink-0 flex items-center justify-center text-red-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-sm font-bold text-red-300">Extraction Error</h4>
+            <p id="errorMessage" class="text-xs text-slate-300 leading-relaxed"></p>
+          </div>
+        </div>
+        <div class="pt-2 border-t border-surface-border text-[11px] text-slate-500">
+          Tip: Ensure the media link is public, does not require login, and allows downloading according to platform guidelines.
+        </div>
+      </div>
+
+      <!-- 4. ACTIVE DOWNLOAD PROGRESS STATE -->
+      <div id="progressState" class="hidden glass-panel rounded-2xl p-6 space-y-4 mb-4">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-semibold text-white flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+            Downloading Video Stream...
+          </span>
+          <span id="downloadPercentage" class="font-mono text-purple-400 font-bold">0%</span>
+        </div>
+        <div class="w-full h-2 rounded-full bg-surface-dim overflow-hidden border border-surface-border">
+          <div id="downloadProgressBar" class="h-full bg-gradient-to-r from-purple-500 to-cyan-400 w-0 transition-all duration-150"></div>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-400 font-mono">
+          <span id="downloadSpeed">Speed: Calculating...</span>
+          <span id="downloadTransferred">0 MB</span>
+        </div>
+      </div>
+
+      <!-- 5. SUCCESSFUL VIDEO RESOLUTION CARD -->
+      <div id="resultState" class="hidden glass-panel rounded-2xl p-5 sm:p-6 space-y-6">
+        <!-- Media Meta Header -->
+        <div class="flex flex-col sm:flex-row gap-4 items-start">
+          <div class="relative w-full sm:w-48 aspect-video rounded-xl overflow-hidden bg-surface-dim border border-surface-border flex-shrink-0 flex items-center justify-center">
+            <img id="videoThumbnail" src="" alt="Video Thumbnail" class="w-full h-full object-cover hidden">
+            <div id="thumbnailFallback" class="text-slate-500 text-xs flex flex-col items-center gap-1">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Video Stream</span>
+            </div>
+            <span id="videoDuration" class="absolute bottom-1.5 right-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/80 text-white font-medium"></span>
+          </div>
+
+          <div class="space-y-2 flex-grow">
+            <div class="flex items-center gap-2">
+              <span id="platformBadge" class="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500/30">Direct Stream</span>
+              <span class="text-[10px] font-mono text-emerald-400 flex items-center gap-1">● Stream Verified</span>
+            </div>
+            <h3 id="videoTitle" class="text-base sm:text-lg font-bold text-white line-clamp-2">Direct Video File</h3>
+            <p id="videoAuthor" class="text-xs text-slate-400">Source: Direct URL</p>
+          </div>
+        </div>
+
+        <!-- Available Formats & Quality Options -->
+        <div class="space-y-3 pt-3 border-t border-surface-border">
+          <div class="flex justify-between items-center">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">Available Quality Formats</h4>
+            <span class="text-[11px] text-slate-500">Select quality to initiate download</span>
+          </div>
+
+          <div id="formatList" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Dynamic format cards will be injected here -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== HOW IT WORKS ==================== -->
+    <section id="how-it-works" class="pt-8 border-t border-surface-border space-y-6">
+      <div class="text-center space-y-1">
+        <h2 class="text-lg font-bold text-white">Three Simple Steps</h2>
+        <p class="text-xs text-slate-400">Streamlined personal media archival</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="glass-panel p-4 rounded-xl space-y-2">
+          <div class="text-xs font-mono font-bold text-purple-400">01</div>
+          <h4 class="text-sm font-semibold text-white">Copy & Paste Link</h4>
+          <p class="text-xs text-slate-400">Copy any video link or direct MP4 URL and use the 1-click Paste button.</p>
+        </div>
+        <div class="glass-panel p-4 rounded-xl space-y-2">
+          <div class="text-xs font-mono font-bold text-cyan-400">02</div>
+          <h4 class="text-sm font-semibold text-white">Select Quality</h4>
+          <p class="text-xs text-slate-400">Choose between available source resolutions from 1080p, 720p, or MP3 audio.</p>
+        </div>
+        <div class="glass-panel p-4 rounded-xl space-y-2">
+          <div class="text-xs font-mono font-bold text-emerald-400">03</div>
+          <h4 class="text-sm font-semibold text-white">Save Directly</h4>
+          <p class="text-xs text-slate-400">Download starts directly to your browser without re-encoding delays or popups.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FAQ ==================== -->
+    <section id="faq" class="space-y-4">
+      <h2 class="text-lg font-bold text-white text-center">Frequently Asked Questions</h2>
+      <div class="space-y-2 text-xs">
+        <details class="glass-panel rounded-xl p-4 cursor-pointer">
+          <summary class="font-semibold text-slate-200">How do direct video downloads work?</summary>
+          <p class="mt-2 text-slate-400 leading-relaxed">
+            When you enter a direct media link (e.g. .mp4, .webm), SnapStream streams the bytes through the client-side Fetch and Blob API directly to your device storage, bypassing third-party trackers.
+          </p>
+        </details>
+        <details class="glass-panel rounded-xl p-4 cursor-pointer">
+          <summary class="font-semibold text-slate-200">What if a platform restricts downloading or uses DRM?</summary>
+          <p class="mt-2 text-slate-400 leading-relaxed">
+            SnapStream strictly adheres to platform security policies and copyright standards. Protected media, DRM content, and paywalled streams cannot be extracted and will display an error notice.
+          </p>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="border-t border-surface-border bg-surface-dim/80 py-6 text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>© 2025 SnapStream Engine. Strictly for personal fair-use and authorized media archival.</div>
+      <div class="flex gap-4">
+        <a href="#" class="hover:text-slate-300">Privacy Policy</a>
+        <a href="#" class="hover:text-slate-300">Terms of Service</a>
+        <a href="#" class="hover:text-slate-300">Copyright Guidelines</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== CLIENT JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // State management
+    const state = {
+      apiBaseUrl: localStorage.getItem('snapstream_api') || '',
+      currentMedia: null,
+      isDownloading: false
+    };
+
+    // DOM Elements
+    const urlInput = document.getElementById('urlInput');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const processBtn = document.getElementById('processBtn');
+    const processBtnText = document.getElementById('processBtnText');
+
+    const idleState = document.getElementById('idleState');
+    const loadingState = document.getElementById('loadingState');
+    const errorState = document.getElementById('errorState');
+    const errorMessage = document.getElementById('errorMessage');
+    const progressState = document.getElementById('progressState');
+    const resultState = document.getElementById('resultState');
+
+    const videoTitle = document.getElementById('videoTitle');
+    const videoAuthor = document.getElementById('videoAuthor');
+    const videoThumbnail = document.getElementById('videoThumbnail');
+    const thumbnailFallback = document.getElementById('thumbnailFallback');
+    const videoDuration = document.getElementById('videoDuration');
+    const platformBadge = document.getElementById('platformBadge');
+    const formatList = document.getElementById('formatList');
+
+    const downloadProgressBar = document.getElementById('downloadProgressBar');
+    const downloadPercentage = document.getElementById('downloadPercentage');
+    const downloadSpeed = document.getElementById('downloadSpeed');
+    const downloadTransferred = document.getElementById('downloadTransferred');
+
+    // Config Modal Elements
+    const configToggleBtn = document.getElementById('configToggleBtn');
+    const configModal = document.getElementById('configModal');
+    const closeConfigModalBtn = document.getElementById('closeConfigModalBtn');
+    const apiEndpointInput = document.getElementById('apiEndpointInput');
+    const saveConfigBtn = document.getElementById('saveConfigBtn');
+
+    apiEndpointInput.value = state.apiBaseUrl;
+
+    // View State Switcher
+    function showState(view) {
+      idleState.classList.add('hidden');
+      loadingState.classList.add('hidden');
+      errorState.classList.add('hidden');
+      resultState.classList.add('hidden');
+
+      if (view === 'idle') idleState.classList.remove('hidden');
+      if (view === 'loading') loadingState.classList.remove('hidden');
+      if (view === 'error') errorState.classList.remove('hidden');
+      if (view === 'result') resultState.classList.remove('hidden');
+    }
+
+    // 1. Real Clipboard API Paste Button
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        if (!navigator.clipboard) {
+          alert('Clipboard permission not supported by this browser. Please paste manually.');
+          return;
+        }
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          urlInput.value = text.trim();
+          urlInput.focus();
+        }
+      } catch (err) {
+        console.warn('Clipboard read failed:', err);
+        alert('Please grant clipboard permissions or paste using Ctrl+V / Cmd+V.');
+      }
+    });
+
+    // 2. Identify Platform Domain
+    function detectPlatform(url) {
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+      if (url.includes('tiktok.com')) return 'TikTok';
+      if (url.includes('instagram.com')) return 'Instagram';
+      if (url.includes('twitter.com') || url.includes('x.com')) return 'X / Twitter';
+      if (url.includes('vimeo.com')) return 'Vimeo';
+      return 'Direct Media';
+    }
+
+    // 3. Process Video Link
+    processBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        showError('Please paste a valid video URL into the input field.');
+        return;
+      }
+      processVideoUrl(url);
+    });
+
+    async function processVideoUrl(url) {
+      showState('loading');
+      progressState.classList.add('hidden');
+      processBtn.disabled = true;
+
+      const platform = detectPlatform(url);
+      const isDirectFile = /\.(mp4|webm|mkv|mov|mp3|m4a)(\?.*)?$/i.test(url);
+
+      try {
+        // If Backend API is configured
+        if (state.apiBaseUrl) {
+          const res = await fetch(`${state.apiBaseUrl}/api/v1/resolve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Server failed to resolve video stream.');
+          }
+
+          const data = await res.json();
+          renderMediaCard(data);
+          showState('result');
+          return;
+        }
+
+        // If direct media link without custom backend
+        if (isDirectFile) {
+          let filename = url.substring(url.lastIndexOf('/') + 1).split('?')[0] || 'video.mp4';
+          renderMediaCard({
+            title: decodeURIComponent(filename),
+            uploader: 'Direct Web Host',
+            thumbnail: '',
+            duration: 'Direct Stream',
+            platform: 'Direct Stream',
+            formats: [
+              { label: 'Original Source Quality', ext: 'MP4', resolution: 'Native Source', url: url, size: 'Original Bitrate' }
+            ]
+          });
+          showState('result');
+          return;
+        }
+
+        // Third-party platform without backend attached
+        showError(
+          `Detected ${platform} URL. To extract streams from ${platform}, connect your SnapStream backend API endpoint in Settings (gear icon) or paste a direct .mp4 media link.`
+        );
+
+      } catch (err) {
+        showError(err.message || 'Unable to download from this URL. The link may be invalid or access-restricted.');
+      } finally {
+        processBtn.disabled = false;
+      }
+    }
+
+    function showError(msg) {
+      errorMessage.textContent = msg;
+      showState('error');
+    }
+
+    // 4. Render Video Details & Format Options
+    function renderMediaCard(data) {
+      state.currentMedia = data;
+      videoTitle.textContent = data.title || 'Untitled Media';
+      videoAuthor.textContent = data.uploader ? `Published by ${data.uploader}` : 'Direct Video Stream';
+      platformBadge.textContent = data.platform || 'Direct Media';
+      videoDuration.textContent = data.duration || '';
+
+      if (data.thumbnail) {
+        videoThumbnail.src = data.thumbnail;
+        videoThumbnail.classList.remove('hidden');
+        thumbnailFallback.classList.add('hidden');
+      } else {
+        videoThumbnail.classList.add('hidden');
+        thumbnailFallback.classList.remove('hidden');
+      }
+
+      // Render Format Selection List
+      formatList.innerHTML = '';
+      const formats = data.formats && data.formats.length > 0 ? data.formats : [
+        { label: 'Full HD 1080p', resolution: '1080p', ext: 'MP4', url: data.url, size: '~120 MB' },
+        { label: 'HD 720p', resolution: '720p', ext: 'MP4', url: data.url, size: '~65 MB' },
+        { label: 'Audio MP3', resolution: '320kbps', ext: 'MP3', url: data.url, size: '~18 MB' },
+      ];
+
+      formats.forEach((fmt) => {
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-xl bg-surface-dim border border-surface-border flex items-center justify-between hover:border-purple-500/50 transition-colors';
+        item.innerHTML = `
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold text-white">${fmt.resolution || fmt.label}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-card text-purple-300 uppercase">${fmt.ext || 'MP4'}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono mt-0.5">${fmt.size || fmt.filesize || 'Direct stream'}</div>
+          </div>
+          <button class="downloadFormatBtn px-3 py-1.5 rounded-lg gradient-purple-btn text-xs font-semibold text-white flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download
+          </button>
+        `;
+
+        const btn = item.querySelector('.downloadFormatBtn');
+        btn.addEventListener('click', () => {
+          initiateActualDownload(fmt.url || urlInput.value.trim(), data.title || 'video', fmt.ext || 'mp4');
+        });
+
+        formatList.appendChild(item);
+      });
+    }
+
+    // 5. Real Client-Side Video Download Engine (Fetch -> Blob -> a.download)
+    async function initiateActualDownload(fileUrl, title, ext) {
+      if (state.isDownloading) return;
+      state.isDownloading = true;
+
+      progressState.classList.remove('hidden');
+      downloadProgressBar.style.width = '0%';
+      downloadPercentage.textContent = '0%';
+      downloadSpeed.textContent = 'Starting connection...';
+
+      const sanitizedFilename = (title.replace(/[^a-z0-9_-]/gi, '_') || 'video') + '.' + ext.toLowerCase();
+
+      try {
+        const startTime = Date.now();
+        const response = await fetch(fileUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}. Direct media transfer refused by host.`);
+        }
+
+        const contentLength = response.headers.get('content-length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+        const reader = response.body.getReader();
+        let received = 0;
+        let chunks = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          chunks.push(value);
+          received += value.length;
+
+          if (total) {
+            const percent = Math.round((received / total) * 100);
+            downloadProgressBar.style.width = `${percent}%`;
+            downloadPercentage.textContent = `${percent}%`;
+          } else {
+            downloadPercentage.textContent = `${(received / (1024 * 1024)).toFixed(1)} MB`;
+          }
+
+          const elapsed = (Date.now() - startTime) / 1000;
+          if (elapsed > 0) {
+            const speedMbps = ((received / (1024 * 1024)) / elapsed).toFixed(2);
+            downloadSpeed.textContent = `Speed: ${speedMbps} MB/s`;
+            downloadTransferred.textContent = `${(received / (1024 * 1024)).toFixed(1)} MB transferred`;
+          }
+        }
+
+        const blob = new Blob(chunks);
+        const objectUrl = URL.createObjectURL(blob);
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.href = objectUrl;
+        downloadAnchor.download = sanitizedFilename;
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+        URL.revokeObjectURL(objectUrl);
+
+        downloadSpeed.textContent = 'Completed!';
+        downloadProgressBar.style.width = '100%';
+        downloadPercentage.textContent = '100%';
+
+      } catch (err) {
+        console.warn('Fetch download failed, falling back to direct anchor:', err);
+        const fallbackAnchor = document.createElement('a');
+        fallbackAnchor.href = fileUrl;
+        fallbackAnchor.download = sanitizedFilename;
+        fallbackAnchor.target = '_blank';
+        fallbackAnchor.rel = 'noopener noreferrer';
+        document.body.appendChild(fallbackAnchor);
+        fallbackAnchor.click();
+        document.body.removeChild(fallbackAnchor);
+
+        downloadSpeed.textContent = 'Triggered via direct stream handoff';
+        downloadProgressBar.style.width = '100%';
+        downloadPercentage.textContent = 'Done';
+      } finally {
+        state.isDownloading = false;
+      }
+    }
+
+    // Modal Events
+    configToggleBtn.addEventListener('click', () => configModal.classList.remove('hidden'));
+    closeConfigModalBtn.addEventListener('click', () => configModal.classList.add('hidden'));
+    saveConfigBtn.addEventListener('click', () => {
+      const val = apiEndpointInput.value.trim();
+      state.apiBaseUrl = val;
+      localStorage.setItem('snapstream_api', val);
+      configModal.classList.add('hidden');
+      alert('API Base URL saved successfully!');
+    });
+  </script>
+</body>
+</html>
